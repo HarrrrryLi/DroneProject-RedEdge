@@ -1,23 +1,35 @@
 import requests
-from PIL import Image
-from io import BytesIO
-from StringIO import StringIO
 from io import open as iopen
-from urlparse import urlsplit
+import time
 
 home_url = 'http://192.168.10.254'
 
-payload = {'preview':'true','block':'true'}
+# Capture
+capture_params = {'preview':'true','block':'true'}
+r = requests.post(home_url+'/capture',params=capture_params)
+time.sleep(0.6) #wait for save complete
 
-r = requests.post(home_url+'/capture',params=payload)
-print r.json()
-# r =requests.post(home_url+'/capture')
-r = requests.get(home_url+'/files/0006SET/000') 
-print r.json()
-r1 = requests.get(home_url+'/files/0005SET/000/IMG_0020_5.tif') 
+# Get latest capture image
+r = requests.get(home_url+'/files')
+json_dict = r.json()
+lastest_set = json_dict['directories'][-1]
+# print last_set
+r = requests.get('{}/files/{}/000'.format(home_url,lastest_set))
+json_dict = r.json()
+# print json_dict
+lastest_image_sets = json_dict['files'][-5:]
+# print last_image_sets 
 
-with iopen('test.tif', 'wb') as file:
-	file.write(r1.content)
+file_lists = []
+for image_file in lastest_image_sets: 
+	file_name = image_file['name']
+	file_lists.append(file_name)
+	r = requests.get('{}/files/{}/000/{}'.format(home_url,lastest_set,file_name))
+	with iopen(file_name, 'wb') as file:
+		file.write(r.content)
 
+file_list_print = ' '.join(['Latest Image Files are:',','.join(file_lists)])
 
-## TODO: find the newest capture.  RUN using GPS from drone.
+print(file_list_print)
+
+## TODO: RUN using GPS from drone.
